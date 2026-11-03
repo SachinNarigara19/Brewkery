@@ -4,357 +4,202 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.clickretina.brewkery.domain.model.CartItem
-import com.clickretina.brewkery.domain.model.CoffeeSize
-import com.clickretina.brewkery.ui.components.BrewkeryTopBar
-import com.clickretina.brewkery.ui.theme.CaramelAccent
-import com.clickretina.brewkery.ui.theme.CoffeePrimary
-import com.clickretina.brewkery.ui.theme.DarkRoastText
-import com.clickretina.brewkery.ui.theme.LightMutedText
-import com.clickretina.brewkery.ui.theme.MediumRoastText
-import com.clickretina.brewkery.ui.theme.OutlineWarm
-import com.clickretina.brewkery.ui.theme.SuccessGreen
-import com.clickretina.brewkery.ui.theme.SurfaceSubtle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.clickretina.brewkery.BrewkeryApplication
+import com.clickretina.brewkery.ui.screens.cart.components.CartCheckoutSection
+import com.clickretina.brewkery.ui.screens.cart.components.CartItemCard
+import com.clickretina.brewkery.ui.screens.cart.components.CartTopBar
+import com.clickretina.brewkery.ui.screens.cart.components.EmptyCartView
+import com.clickretina.brewkery.ui.theme.BorderSubtle
+import com.clickretina.brewkery.ui.theme.DarkBrownText
+import com.clickretina.brewkery.ui.theme.ErrorRed
+import com.clickretina.brewkery.ui.theme.MutedBrownText
+import com.clickretina.brewkery.ui.theme.OrangeAccent
 import com.clickretina.brewkery.ui.theme.WarmBackground
 import com.clickretina.brewkery.ui.theme.WarmSurface
-import java.util.Locale
 
 @Composable
 fun CartScreen(
+    onBackClick: () -> Unit,
+    onNavigateToOrderStatus: () -> Unit,
+    onExploreMenuClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: CartViewModel = viewModel(
+        factory = CartViewModel.Factory(BrewkeryApplication.instance.brewkeryRepository)
+    )
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    var showClearDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.placedOrder) {
+        if (uiState.placedOrder != null) {
+            onNavigateToOrderStatus()
+        }
+    }
+
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = {
+                Text(
+                    text = "Clear Cart?",
+                    color = DarkBrownText,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to remove all handcrafted items from your cart?",
+                    color = MutedBrownText,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showClearDialog = false
+                        viewModel.clearCart()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Clear All", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showClearDialog = false },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Cancel", color = DarkBrownText)
+                }
+            },
+            containerColor = WarmSurface,
+            shape = RoundedCornerShape(18.dp)
+        )
+    }
+
+    CartScreenContent(
+        uiState = uiState,
+        onBackClick = onBackClick,
+        onClearCartClick = { showClearDialog = true },
+        onExploreMenuClick = onExploreMenuClick,
+        onIncreaseQuantity = { cartItemId, currentQty ->
+            viewModel.updateQuantity(cartItemId, currentQty + 1)
+        },
+        onDecreaseQuantity = { cartItemId, currentQty ->
+            viewModel.updateQuantity(cartItemId, currentQty - 1)
+        },
+        onRemoveItem = viewModel::removeItem,
+        onPlaceOrderClick = {
+            viewModel.placeOrder()
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun CartScreenContent(
     uiState: CartUiState,
     onBackClick: () -> Unit,
-    onQuantityChange: (String, CoffeeSize, Int) -> Unit,
-    onRemoveItem: (String, CoffeeSize) -> Unit,
-    onCheckout: () -> Unit,
-    onContinueShopping: () -> Unit
+    onClearCartClick: () -> Unit,
+    onExploreMenuClick: () -> Unit,
+    onIncreaseQuantity: (String, Int) -> Unit,
+    onDecreaseQuantity: (String, Int) -> Unit,
+    onRemoveItem: (String) -> Unit,
+    onPlaceOrderClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Scaffold(
-        topBar = {
-            BrewkeryTopBar(
-                title = "Order Cart",
-                canNavigateBack = true,
-                onNavigateBack = onBackClick,
-                cartItemCount = uiState.items.sumOf { it.quantity },
-                onCartClick = {}
-            )
-        },
+        containerColor = WarmBackground,
         bottomBar = {
-            if (uiState.items.isNotEmpty() && !uiState.isOrderPlaced) {
-                Surface(
-                    color = WarmSurface,
-                    shadowElevation = 12.dp,
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Subtotal", color = LightMutedText, fontSize = 14.sp)
-                            Text(
-                                text = "$${String.format(Locale.US, "%.2f", uiState.subtotal)}",
-                                color = DarkRoastText,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Delivery Fee", color = LightMutedText, fontSize = 14.sp)
-                            Text(
-                                text = "$${String.format(Locale.US, "%.2f", uiState.deliveryFee)}",
-                                color = DarkRoastText,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        HorizontalDivider(color = OutlineWarm.copy(alpha = 0.5f))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Total Amount",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "$${String.format(Locale.US, "%.2f", uiState.grandTotal)}",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = CaramelAccent
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Button(
-                            onClick = onCheckout,
-                            colors = ButtonDefaults.buttonColors(containerColor = CoffeePrimary),
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp)
-                        ) {
-                            Text(
-                                text = "Place Coffee Order",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
+            if (uiState.items.isNotEmpty()) {
+                CartCheckoutSection(
+                    bill = uiState.bill,
+                    onPlaceOrderClick = onPlaceOrderClick
+                )
             }
         },
-        containerColor = WarmBackground
+        modifier = modifier
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .statusBarsPadding()
         ) {
-            if (uiState.isOrderPlaced) {
-                // Success State
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Success",
-                        tint = SuccessGreen,
-                        modifier = Modifier.size(72.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Order Brewed & Confirmed!",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkRoastText
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Your artisanal coffee order has been placed. Our barista is getting your brew ready!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MediumRoastText,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = onContinueShopping,
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CoffeePrimary)
-                    ) {
-                        Text("Back to Menu", color = Color.White)
-                    }
-                }
-            } else if (uiState.items.isEmpty()) {
-                // Empty Cart State
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingBag,
-                        contentDescription = "Empty Cart",
-                        tint = OutlineWarm,
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = "Your Cart is Empty",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkRoastText
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Explore our warm handcrafted brews and add your favorites.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = LightMutedText
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Button(
-                        onClick = onContinueShopping,
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CoffeePrimary)
-                    ) {
-                        Text("Explore Coffee Menu", color = Color.White)
-                    }
-                }
+            // 1. Header (Back Arrow, Centered "YOUR CART", "Clear Cart" Action)
+            CartTopBar(
+                hasItems = uiState.items.isNotEmpty(),
+                onBackClick = onBackClick,
+                onClearCartClick = onClearCartClick,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+            )
+
+            // Content: Empty State or Cart Items List
+            if (uiState.items.isEmpty()) {
+                // 3. Empty Cart State
+                EmptyCartView(
+                    onExploreMenuClick = onExploreMenuClick,
+                    modifier = Modifier.weight(1f)
+                )
             } else {
+                // 2. Cart Items List
                 LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .fillMaxWidth()
+                        .weight(1f)
                 ) {
                     items(
                         items = uiState.items,
                         key = { it.internalId }
                     ) { item ->
-                        CartItemRow(
+                        CartItemCard(
                             item = item,
-                            onQuantityChange = { q ->
-                                onQuantityChange(item.coffeeItem?.id ?: "", item.legacySize, q)
+                            onIncreaseQuantity = {
+                                onIncreaseQuantity(item.internalId, item.quantity)
                             },
-                            onRemove = {
-                                onRemoveItem(item.coffeeItem?.id ?: "", item.legacySize)
+                            onDecreaseQuantity = {
+                                onDecreaseQuantity(item.internalId, item.quantity)
+                            },
+                            onRemoveClick = {
+                                onRemoveItem(item.internalId)
                             }
                         )
                     }
-                    item {
-                        Spacer(modifier = Modifier.height(80.dp))
-                    }
                 }
             }
         }
     }
 }
-
-@Composable
-private fun CartItemRow(
-    item: CartItem,
-    onQuantityChange: (Int) -> Unit,
-    onRemove: () -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = WarmSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AsyncImage(
-                model = item.coffeeItem?.imageUrl ?: item.product?.imageUrl.orEmpty(),
-                contentDescription = item.coffeeItem?.name ?: item.product?.name.orEmpty(),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(70.dp)
-                    .clip(RoundedCornerShape(12.dp))
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.coffeeItem?.name ?: item.product?.name.orEmpty(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = DarkRoastText
-                )
-                Text(
-                    text = "${item.legacySize.label} • ${item.legacySugar.label.substringBefore(" ")}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LightMutedText
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$${String.format(Locale.US, "%.2f", item.totalPrice)}",
-                    color = CaramelAccent,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                IconButton(
-                    onClick = {
-                        if (item.quantity > 1) {
-                            onQuantityChange(item.quantity - 1)
-                        } else {
-                            onRemove()
-                        }
-                    },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = if (item.quantity > 1) Icons.Default.Remove else Icons.Default.Delete,
-                        contentDescription = "Decrease",
-                        tint = DarkRoastText,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                Text(
-                    text = item.quantity.toString(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                IconButton(
-                    onClick = { onQuantityChange(item.quantity + 1) },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Increase",
-                        tint = DarkRoastText,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-

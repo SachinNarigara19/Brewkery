@@ -3,55 +3,84 @@ package com.clickretina.brewkery.ui.screens.cart
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.clickretina.brewkery.data.repository.CoffeeRepository
-import com.clickretina.brewkery.domain.model.CoffeeSize
+import com.clickretina.brewkery.data.repository.BrewkeryRepository
+import com.clickretina.brewkery.domain.model.ActiveOrder
+import com.clickretina.brewkery.domain.util.PriceCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class CartViewModel(
-    private val repository: CoffeeRepository
+    private val repository: BrewkeryRepository,
+    private val priceCalculator: PriceCalculator = PriceCalculator.DEFAULT
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CartUiState())
     val uiState: StateFlow<CartUiState> = _uiState.asStateFlow()
 
     init {
-        observeCart()
+        observeCartAndStoreMeta()
     }
 
-    private fun observeCart() {
+    private fun observeCartAndStoreMeta() {
         viewModelScope.launch {
-            repository.cartItems.collect { items ->
-                _uiState.update { it.copy(items = items) }
+            combine(repository.cartItems, repository.storeMeta) { items, meta ->
+                val bill = priceCalculator.calculateBill(
+                    items = items,
+                    deliveryFee = meta.deliveryFee,
+                    taxRatePercent = meta.taxRatePercent
+                )
+                CartUiState(
+                    items = items,
+                    storeDeliveryFee = meta.deliveryFee,
+                    taxRatePercent = meta.taxRatePercent,
+                    bill = bill,
+                    placedOrder = _uiState.value.placedOrder
+                )
+            }.collect { newState ->
+                _uiState.value = newState
             }
         }
     }
 
-    fun updateQuantity(coffeeId: String, size: CoffeeSize, quantity: Int) {
-        repository.updateCartItemQuantity(coffeeId, size, quantity)
+    fun updateQuantity(cartItemId: String, quantity: Int) {
+        if (quantity <= 0) {
+            repository.removeFromCart(cartItemId)
+        } else {
+            repository.updateCartQuantity(cartItemId, quantity)
+        }
     }
 
-    fun removeItem(coffeeId: String, size: CoffeeSize) {
-        repository.removeFromCart(coffeeId, size)
+    fun removeItem(cartItemId: String) {
+        repository.removeFromCart(cartItemId)
     }
 
-    fun checkout() {
+    fun clearCart() {
         repository.clearCart()
-        _uiState.update { it.copy(isOrderPlaced = true) }
+    }
+
+    fun placeOrder(): ActiveOrder? {
+        val newOrder = repository.placeOrder()
+        if (newOrder != null) {
+            _uiState.update { it.copy(placedOrder = newOrder) }
+        }
+        return newOrder
     }
 
     fun resetOrderState() {
-        _uiState.update { it.copy(isOrderPlaced = false) }
+        _uiState.update { it.copy(placedOrder = null) }
     }
 
-    class Factory(private val repository: CoffeeRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: BrewkeryRepository,
+        private val priceCalculator: PriceCalculator = PriceCalculator.DEFAULT
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return CartViewModel(repository) as T
+            return CartViewModel(repository, priceCalculator) as T
         }
     }
 }
-

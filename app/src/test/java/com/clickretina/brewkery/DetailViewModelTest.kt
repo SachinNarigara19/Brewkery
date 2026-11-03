@@ -224,3 +224,4 @@ class DetailViewModelTest {
         override fun placeOrder(): ActiveOrder? = null
     }
 }
+
