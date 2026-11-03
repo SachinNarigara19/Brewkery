@@ -21,3 +21,4 @@ val OutlineWarm = Color(0xFFD8C8BB)
 val RatingGold = Color(0xFFE29547)
 val SuccessGreen = Color(0xFF43766C)
 val ErrorWarmRed = Color(0xFFB3261E)
+

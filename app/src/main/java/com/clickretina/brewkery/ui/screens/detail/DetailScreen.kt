@@ -414,3 +414,4 @@ fun DetailScreen(
         }
     }
 }
+

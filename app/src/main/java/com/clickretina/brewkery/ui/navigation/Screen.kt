@@ -7,3 +7,4 @@ sealed class Screen(val route: String) {
     }
     data object Cart : Screen("cart")
 }
+

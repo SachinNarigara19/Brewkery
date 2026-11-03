@@ -19,3 +19,4 @@ data class DetailUiState(
             return (base + selectedSize.extraPrice) * quantity
         }
 }
+

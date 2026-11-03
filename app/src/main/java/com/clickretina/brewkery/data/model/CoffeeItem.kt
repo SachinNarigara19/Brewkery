@@ -17,3 +17,4 @@ data class CoffeeItem(
     val origin: String = "Ethiopia / Colombia",
     val isFeatured: Boolean = false
 )
+

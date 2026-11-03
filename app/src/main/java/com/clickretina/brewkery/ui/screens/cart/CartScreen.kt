@@ -243,15 +243,15 @@ fun CartScreen(
                 ) {
                     items(
                         items = uiState.items,
-                        key = { "${it.coffeeItem.id}_${it.selectedSize}_${it.selectedSugar}" }
+                        key = { it.internalId }
                     ) { item ->
                         CartItemRow(
                             item = item,
                             onQuantityChange = { q ->
-                                onQuantityChange(item.coffeeItem.id, item.selectedSize, q)
+                                onQuantityChange(item.coffeeItem?.id ?: "", item.legacySize, q)
                             },
                             onRemove = {
-                                onRemoveItem(item.coffeeItem.id, item.selectedSize)
+                                onRemoveItem(item.coffeeItem?.id ?: "", item.legacySize)
                             }
                         )
                     }
@@ -283,8 +283,8 @@ private fun CartItemRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = item.coffeeItem.imageUrl,
-                contentDescription = item.coffeeItem.name,
+                model = item.coffeeItem?.imageUrl ?: item.product?.imageUrl.orEmpty(),
+                contentDescription = item.coffeeItem?.name ?: item.product?.name.orEmpty(),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(70.dp)
@@ -295,13 +295,13 @@ private fun CartItemRow(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.coffeeItem.name,
+                    text = item.coffeeItem?.name ?: item.product?.name.orEmpty(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = DarkRoastText
                 )
                 Text(
-                    text = "${item.selectedSize.label} • ${item.selectedSugar.label.substringBefore(" ")}",
+                    text = "${item.legacySize.label} • ${item.legacySugar.label.substringBefore(" ")}",
                     style = MaterialTheme.typography.bodySmall,
                     color = LightMutedText
                 )
@@ -357,3 +357,4 @@ private fun CartItemRow(
         }
     }
 }
+

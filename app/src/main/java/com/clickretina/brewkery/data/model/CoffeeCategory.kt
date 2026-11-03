@@ -11,3 +11,4 @@ enum class CoffeeCategory(val displayName: String) {
     SPECIALTY("Specialty"),
     BAKERY("Bakery")
 }
+

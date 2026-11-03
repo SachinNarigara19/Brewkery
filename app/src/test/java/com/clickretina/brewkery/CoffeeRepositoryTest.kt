@@ -1,7 +1,7 @@
 package com.clickretina.brewkery
 
 import com.clickretina.brewkery.data.model.CoffeeCategory
-import com.clickretina.brewkery.data.remote.BrewkeryApiService
+import com.clickretina.brewkery.data.remote.RetrofitClient
 import com.clickretina.brewkery.data.repository.CoffeeRepositoryImpl
 import com.clickretina.brewkery.domain.model.CoffeeSize
 import com.clickretina.brewkery.domain.model.SugarLevel
@@ -16,16 +16,10 @@ class CoffeeRepositoryTest {
 
     private lateinit var repository: CoffeeRepositoryImpl
 
-    // Minimal dummy service implementation for unit testing
-    private val fakeApiService = object : BrewkeryApiService {
-        override suspend fun getCoffees(category: String?) = emptyList<com.clickretina.brewkery.data.model.CoffeeItem>()
-        override suspend fun getCoffeeById(id: String) = throw NoSuchElementException("Remote item not found")
-    }
-
     @Before
     fun setup() {
         repository = CoffeeRepositoryImpl(
-            apiService = fakeApiService,
+            apiService = RetrofitClient.apiService,
             ioDispatcher = Dispatchers.Unconfined
         )
     }
@@ -59,6 +53,6 @@ class CoffeeRepositoryTest {
         val items = repository.cartItems.value
         assertEquals(1, items.size)
         assertEquals(2, items.first().quantity)
-        assertEquals(coffee.id, items.first().coffeeItem.id)
+        assertEquals(coffee.id, items.first().coffeeItem?.id)
     }
 }

@@ -112,14 +112,7 @@ class CoffeeRepositoryImpl(
     override suspend fun getCoffees(category: CoffeeCategory): Result<List<CoffeeItem>> =
         withContext(ioDispatcher) {
             runCatching {
-                try {
-                    val query = if (category == CoffeeCategory.ALL) null else category.name
-                    val remote = apiService.getCoffees(query)
-                    if (remote.isNotEmpty()) remote else filterLocal(category)
-                } catch (e: Exception) {
-                    // Graceful fallback to rich local catalog for offline / mock testing
-                    filterLocal(category)
-                }
+                filterLocal(category)
             }
         }
 
@@ -134,12 +127,8 @@ class CoffeeRepositoryImpl(
     override suspend fun getCoffeeById(id: String): Result<CoffeeItem> =
         withContext(ioDispatcher) {
             runCatching {
-                try {
-                    apiService.getCoffeeById(id)
-                } catch (e: Exception) {
-                    localCoffeeCatalog.firstOrNull { it.id == id }
-                        ?: throw NoSuchElementException("Coffee with id $id not found")
-                }
+                localCoffeeCatalog.firstOrNull { it.id == id }
+                    ?: throw NoSuchElementException("Coffee with id $id not found")
             }
         }
 
@@ -151,7 +140,7 @@ class CoffeeRepositoryImpl(
     ) {
         _cartItems.update { current ->
             val existingIndex = current.indexOfFirst {
-                it.coffeeItem.id == coffeeItem.id && it.selectedSize == size && it.selectedSugar == sugar
+                it.coffeeItem?.id == coffeeItem.id
             }
             if (existingIndex >= 0) {
                 current.toMutableList().apply {
@@ -161,9 +150,7 @@ class CoffeeRepositoryImpl(
             } else {
                 current + CartItem(
                     coffeeItem = coffeeItem,
-                    quantity = quantity,
-                    selectedSize = size,
-                    selectedSugar = sugar
+                    quantity = quantity
                 )
             }
         }
@@ -172,10 +159,10 @@ class CoffeeRepositoryImpl(
     override fun updateCartItemQuantity(coffeeId: String, size: CoffeeSize, quantity: Int) {
         _cartItems.update { current ->
             if (quantity <= 0) {
-                current.filterNot { it.coffeeItem.id == coffeeId && it.selectedSize == size }
+                current.filterNot { it.coffeeItem?.id == coffeeId }
             } else {
                 current.map {
-                    if (it.coffeeItem.id == coffeeId && it.selectedSize == size) {
+                    if (it.coffeeItem?.id == coffeeId) {
                         it.copy(quantity = quantity)
                     } else {
                         it
@@ -187,7 +174,7 @@ class CoffeeRepositoryImpl(
 
     override fun removeFromCart(coffeeId: String, size: CoffeeSize) {
         _cartItems.update { current ->
-            current.filterNot { it.coffeeItem.id == coffeeId && it.selectedSize == size }
+            current.filterNot { it.coffeeItem?.id == coffeeId }
         }
     }
 
@@ -195,3 +182,4 @@ class CoffeeRepositoryImpl(
         _cartItems.value = emptyList()
     }
 }
+

@@ -1,19 +1,18 @@
 package com.clickretina.brewkery.data.remote
 
-import com.clickretina.brewkery.data.model.CoffeeItem
+import com.clickretina.brewkery.data.remote.dto.MenuResponseDto
+import com.clickretina.brewkery.data.remote.dto.ProductItemDto
+import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
-import retrofit2.http.Query
 
 interface BrewkeryApiService {
 
-    @GET("coffees")
-    suspend fun getCoffees(
-        @Query("category") category: String? = null
-    ): List<CoffeeItem>
+    @GET("data.json")
+    suspend fun getMenu(): Response<MenuResponseDto>
 
-    @GET("coffees/{id}")
-    suspend fun getCoffeeById(
-        @Path("id") id: String
-    ): CoffeeItem
+    @GET("api/items/{id}.json")
+    suspend fun getItemById(
+        @Path("id") id: Int
+    ): Response<ProductItemDto>
 }

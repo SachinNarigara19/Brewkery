@@ -19,3 +19,4 @@ data class HomeUiState(
                 it.subtitle.contains(searchQuery, ignoreCase = true)
         }
 }
+
