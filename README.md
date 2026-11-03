@@ -222,3 +222,4 @@ This project was built collaboratively with AI coding assistants adhering to pro
 - **Application**: Brewkery Android App
 - **Assignment**: Clickretina Android Developer Technical Assessment
 - **Package Name**: `com.clickretina.brewkery`
+
