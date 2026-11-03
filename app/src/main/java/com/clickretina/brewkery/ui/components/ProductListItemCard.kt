@@ -96,7 +96,7 @@ fun ProductListItemCard(
                 Text(
                     text = product.name,
                     color = DarkBrownText,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -131,7 +131,7 @@ fun ProductListItemCard(
                     Text(
                         text = "$${String.format(Locale.US, "%.2f", product.basePrice)}",
                         color = OrangeAccent,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Black
                     )
 
@@ -140,13 +140,13 @@ fun ProductListItemCard(
                             .clip(RoundedCornerShape(8.dp))
                             .background(OrangeAccent)
                             .clickable(onClick = onCustomizeClick)
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "+ Customize",
                             color = Color.White,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }

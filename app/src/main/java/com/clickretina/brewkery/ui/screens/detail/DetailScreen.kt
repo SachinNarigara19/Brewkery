@@ -149,7 +149,6 @@ fun DetailScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .statusBarsPadding()
         ) {
             // 1. Top Toolbar (Back Button, Centered "ITEM CUSTOMIZER", Heart Favorite Button)
             CustomizerTopBar(

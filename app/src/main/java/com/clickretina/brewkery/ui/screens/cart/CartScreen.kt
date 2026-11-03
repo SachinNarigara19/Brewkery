@@ -155,7 +155,6 @@ fun CartScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .statusBarsPadding()
         ) {
             // 1. Header (Back Arrow, Centered "YOUR CART", "Clear Cart" Action)
             CartTopBar(
