@@ -73,6 +73,7 @@ fun DetailScreen(
     onCartClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DetailViewModel = viewModel(
+        key = "customizer_$productId",
         factory = DetailViewModel.Factory(
             productId = productId,
             repository = BrewkeryApplication.instance.brewkeryRepository

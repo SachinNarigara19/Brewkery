@@ -1,12 +1,16 @@
 package com.clickretina.brewkery.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.clickretina.brewkery.BrewkeryApplication
+import com.clickretina.brewkery.data.repository.BrewkeryRepository
 import com.clickretina.brewkery.ui.screens.cart.CartScreen
+import com.clickretina.brewkery.ui.screens.cart.CartViewModel
 import com.clickretina.brewkery.ui.screens.detail.DetailScreen
 import com.clickretina.brewkery.ui.screens.home.HomeScreen
 import com.clickretina.brewkery.ui.screens.order.OrderStatusScreen
@@ -14,37 +18,47 @@ import com.clickretina.brewkery.ui.screens.order.OrderStatusScreen
 @Composable
 fun BrewkeryNavGraph(
     navController: NavHostController,
-    startDestination: String = Screen.Home.route
+    startDestination: String = Screen.Menu.route,
+    repository: BrewkeryRepository = BrewkeryApplication.instance.brewkeryRepository
 ) {
+    // Shared application/graph-level CartViewModel for consistent cart state
+    val sharedCartViewModel: CartViewModel = viewModel(
+        factory = CartViewModel.Factory(repository)
+    )
+
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
-        composable(Screen.Home.route) {
+        // 1. Menu Screen
+        composable(Screen.Menu.route) {
             HomeScreen(
                 onProductClick = { productId ->
-                    navController.navigate(Screen.Detail.createRoute(productId))
+                    navController.navigate(Screen.Customizer.createRoute(productId))
                 },
                 onCustomizeClick = { productId ->
-                    navController.navigate(Screen.Detail.createRoute(productId))
+                    navController.navigate(Screen.Customizer.createRoute(productId))
                 },
                 onCartClick = {
                     navController.navigate(Screen.Cart.route)
                 },
                 onTrackOrderClick = {
-                    navController.navigate(Screen.Cart.route)
+                    navController.navigate(Screen.OrderConfirmation.route)
                 }
             )
         }
 
+        // 2. Item Customizer Screen
         composable(
-            route = Screen.Detail.route,
+            route = Screen.Customizer.route,
             arguments = listOf(
-                navArgument("productId") { type = NavType.StringType }
+                navArgument(Screen.Customizer.ARG_PRODUCT_ID) {
+                    type = NavType.IntType
+                    defaultValue = 1
+                }
             )
         ) { backStackEntry ->
-            val productIdStr = backStackEntry.arguments?.getString("productId").orEmpty()
-            val productId = productIdStr.toIntOrNull() ?: 1
+            val productId = backStackEntry.arguments?.getInt(Screen.Customizer.ARG_PRODUCT_ID) ?: 1
 
             DetailScreen(
                 productId = productId,
@@ -53,25 +67,27 @@ fun BrewkeryNavGraph(
             )
         }
 
+        // 3. Cart Screen (using shared CartViewModel)
         composable(Screen.Cart.route) {
             CartScreen(
                 onBackClick = { navController.popBackStack() },
                 onNavigateToOrderStatus = {
-                    navController.navigate(Screen.OrderStatus.route)
+                    navController.navigate(Screen.OrderConfirmation.route)
                 },
                 onExploreMenuClick = {
-                    navController.popBackStack(Screen.Home.route, inclusive = false)
-                }
+                    navController.popBackStack(Screen.Menu.route, inclusive = false)
+                },
+                viewModel = sharedCartViewModel
             )
         }
 
-        composable(Screen.OrderStatus.route) {
+        // 4. Order Confirmation Screen
+        composable(Screen.OrderConfirmation.route) {
             OrderStatusScreen(
                 onBackToMenuClick = {
-                    navController.popBackStack(Screen.Home.route, inclusive = false)
+                    navController.popBackStack(Screen.Menu.route, inclusive = false)
                 }
             )
         }
     }
 }
-

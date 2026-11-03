@@ -24,3 +24,4 @@ data class OrderStatusUiState(
     val displayItemsSummary: List<String>
         get() = order?.itemsSummary ?: emptyList()
 }
+

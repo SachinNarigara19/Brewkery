@@ -1,11 +1,18 @@
 package com.clickretina.brewkery.ui.navigation
 
 sealed class Screen(val route: String) {
-    data object Home : Screen("home")
-    data object Detail : Screen("detail/{productId}") {
-        fun createRoute(productId: Int) = "detail/$productId"
-        fun createRoute(productId: String) = "detail/$productId"
+    data object Menu : Screen("menu")
+    data object Customizer : Screen("customizer/{productId}") {
+        const val ARG_PRODUCT_ID = "productId"
+        fun createRoute(productId: Int): String = "customizer/$productId"
+        fun createRoute(productId: String): String = "customizer/$productId"
     }
     data object Cart : Screen("cart")
-    data object OrderStatus : Screen("order_status")
+    data object OrderConfirmation : Screen("orderConfirmation")
+
+    companion object {
+        val Home get() = Menu
+        val Detail get() = Customizer
+        val OrderStatus get() = OrderConfirmation
+    }
 }
