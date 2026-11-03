@@ -2,23 +2,34 @@ package com.clickretina.brewkery.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Warm Coffee Palette
-val EspressoDark = Color(0xFF2C1810)
-val CoffeePrimary = Color(0xFF5D3A1A)
-val CoffeeSecondary = Color(0xFF8C5835)
-val CaramelAccent = Color(0xFFC67C4E)
-val MochaLight = Color(0xFFD4A373)
-val LatteCream = Color(0xFFF7EBE1)
-val WarmBackground = Color(0xFFFBF8F5)
+// Official Brewkery Palette
+val WarmBackground = Color(0xFFFFF9F5)
 val WarmSurface = Color(0xFFFFFFFF)
-val SurfaceSubtle = Color(0xFFF4ECE4)
-val DarkRoastText = Color(0xFF1E140F)
-val MediumRoastText = Color(0xFF5A4638)
-val LightMutedText = Color(0xFF8D7B6F)
-val OutlineWarm = Color(0xFFD8C8BB)
+val SurfaceCard = Color(0xFFFFFFFF)
+val BorderSubtle = Color(0xFFEBD8CB)
+val DarkBrownText = Color(0xFF180D08)
+val EspressoBlack = Color(0xFF140B07)
+val MutedBrownText = Color(0xFF786457)
+val OrangeAccent = Color(0xFFE84B2C)
+val TerracottaDark = Color(0xFFD9532F)
+val AmberAccent = Color(0xFFF59E0B)
+val BadgeBg = Color(0xFFFEF3C7)
+val BadgeText = Color(0xFF78350F)
+val DeliveryCardBg = Color(0xFFFAEEE5)
+val DeliveryCardBgEnd = Color(0xFFF7EBE1)
+val SuccessGreen = Color(0xFF059669)
+val ErrorRed = Color(0xFFDC2626)
 
-// Semantic colors
-val RatingGold = Color(0xFFE29547)
-val SuccessGreen = Color(0xFF43766C)
-val ErrorWarmRed = Color(0xFFB3261E)
-
+// Compatibility aliases
+val EspressoDark = EspressoBlack
+val CoffeePrimary = OrangeAccent
+val CoffeeSecondary = MutedBrownText
+val CaramelAccent = AmberAccent
+val DarkRoastText = DarkBrownText
+val MediumRoastText = MutedBrownText
+val LightMutedText = MutedBrownText
+val OutlineWarm = BorderSubtle
+val LatteCream = DeliveryCardBgEnd
+val SurfaceSubtle = DeliveryCardBg
+val RatingGold = AmberAccent
+val ErrorWarmRed = ErrorRed

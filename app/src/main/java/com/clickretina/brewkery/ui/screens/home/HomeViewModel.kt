@@ -3,11 +3,8 @@ package com.clickretina.brewkery.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.clickretina.brewkery.data.model.CoffeeCategory
-import com.clickretina.brewkery.data.model.CoffeeItem
-import com.clickretina.brewkery.data.repository.CoffeeRepository
-import com.clickretina.brewkery.domain.model.CoffeeSize
-import com.clickretina.brewkery.domain.model.SugarLevel
+import com.clickretina.brewkery.data.repository.BrewkeryRepository
+import com.clickretina.brewkery.domain.model.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,73 +12,104 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
-    private val repository: CoffeeRepository
+    private val repository: BrewkeryRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        observeCart()
-        loadCoffees(CoffeeCategory.ALL)
+        observeRepositoryStreams()
+        loadMenu(forceRefresh = false)
     }
 
-    private fun observeCart() {
+    private fun observeRepositoryStreams() {
+        // Observe Menu Resource State
+        viewModelScope.launch {
+            repository.menuState.collect { resource ->
+                when (resource) {
+                    is Resource.Loading -> {
+                        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+                    }
+                    is Resource.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                products = resource.data,
+                                errorMessage = null
+                            )
+                        }
+                    }
+                    is Resource.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = resource.message
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Observe Store Meta
+        viewModelScope.launch {
+            repository.storeMeta.collect { meta ->
+                _uiState.update { it.copy(storeMeta = meta) }
+            }
+        }
+
+        // Observe Categories
+        viewModelScope.launch {
+            repository.categories.collect { cats ->
+                _uiState.update { it.copy(categories = cats) }
+            }
+        }
+
+        // Observe Cart Items (Single Source of Truth)
         viewModelScope.launch {
             repository.cartItems.collect { items ->
-                val totalCount = items.sumOf { it.quantity }
-                _uiState.update { it.copy(cartCount = totalCount) }
-            }
-        }
-    }
-
-    fun loadCoffees(category: CoffeeCategory) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, selectedCategory = category, errorMessage = null) }
-            val result = repository.getCoffees(category)
-            result.onSuccess { list ->
-                _uiState.update { state ->
-                    state.copy(
-                        isLoading = false,
-                        coffees = list,
-                        featuredCoffees = list.filter { it.isFeatured }
-                    )
-                }
-            }.onFailure { err ->
+                val count = items.sumOf { it.quantity }
+                val subtotal = items.sumOf { it.totalPrice }
                 _uiState.update {
                     it.copy(
-                        isLoading = false,
-                        errorMessage = err.localizedMessage ?: "Failed to load menu"
+                        cartCount = count,
+                        cartSubtotal = subtotal
                     )
                 }
             }
         }
+
+        // Observe Active Order for Dynamic Banner
+        viewModelScope.launch {
+            repository.activeOrder.collect { order ->
+                _uiState.update { it.copy(activeOrder = order) }
+            }
+        }
     }
 
-    fun onCategorySelected(category: CoffeeCategory) {
-        if (_uiState.value.selectedCategory != category) {
-            loadCoffees(category)
+    fun loadMenu(forceRefresh: Boolean = false) {
+        viewModelScope.launch {
+            repository.getMenu(forceRefresh = forceRefresh)
         }
+    }
+
+    fun onCategorySelected(categoryId: String) {
+        _uiState.update { it.copy(selectedCategoryId = categoryId) }
     }
 
     fun onSearchQueryChanged(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
     }
 
-    fun quickAddToCart(coffee: CoffeeItem) {
-        repository.addToCart(
-            coffeeItem = coffee,
-            size = CoffeeSize.REGULAR,
-            sugar = SugarLevel.NORMAL,
-            quantity = 1
-        )
+    fun onRetry() {
+        loadMenu(forceRefresh = true)
     }
 
-    class Factory(private val repository: CoffeeRepository) : ViewModelProvider.Factory {
+    class Factory(private val repository: BrewkeryRepository) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return HomeViewModel(repository) as T
         }
     }
 }
-

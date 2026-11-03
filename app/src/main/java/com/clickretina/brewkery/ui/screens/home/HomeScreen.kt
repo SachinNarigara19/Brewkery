@@ -5,266 +5,272 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.clickretina.brewkery.ui.components.BrewkeryTopBar
-import com.clickretina.brewkery.ui.components.CategoryFilterRow
-import com.clickretina.brewkery.ui.components.CoffeeCard
-import com.clickretina.brewkery.ui.theme.CaramelAccent
-import com.clickretina.brewkery.ui.theme.CoffeePrimary
-import com.clickretina.brewkery.ui.theme.DarkRoastText
-import com.clickretina.brewkery.ui.theme.EspressoDark
-import com.clickretina.brewkery.ui.theme.LatteCream
-import com.clickretina.brewkery.ui.theme.LightMutedText
-import com.clickretina.brewkery.ui.theme.MediumRoastText
-import com.clickretina.brewkery.ui.theme.OutlineWarm
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.clickretina.brewkery.BrewkeryApplication
+import com.clickretina.brewkery.ui.components.BrewkeryHeader
+import com.clickretina.brewkery.ui.components.BrewkerySearchBar
+import com.clickretina.brewkery.ui.components.CategoryChipsRow
+import com.clickretina.brewkery.ui.components.DeliveryInfoCard
+import com.clickretina.brewkery.ui.components.FloatingCartBar
+import com.clickretina.brewkery.ui.components.ProductListItemCard
+import com.clickretina.brewkery.ui.theme.BorderSubtle
+import com.clickretina.brewkery.ui.theme.DarkBrownText
+import com.clickretina.brewkery.ui.theme.MutedBrownText
+import com.clickretina.brewkery.ui.theme.OrangeAccent
 import com.clickretina.brewkery.ui.theme.WarmBackground
 import com.clickretina.brewkery.ui.theme.WarmSurface
-import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
-    uiState: HomeUiState,
-    onCategorySelected: (com.clickretina.brewkery.data.model.CoffeeCategory) -> Unit,
-    onSearchQueryChanged: (String) -> Unit,
-    onCoffeeClick: (String) -> Unit,
-    onQuickAdd: (com.clickretina.brewkery.data.model.CoffeeItem) -> Unit,
-    onCartClick: () -> Unit
+    onProductClick: (Int) -> Unit,
+    onCustomizeClick: (Int) -> Unit,
+    onCartClick: () -> Unit,
+    onTrackOrderClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModel.Factory(BrewkeryApplication.instance.brewkeryRepository)
+    )
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    HomeScreenContent(
+        uiState = uiState,
+        onCategorySelected = viewModel::onCategorySelected,
+        onSearchQueryChanged = viewModel::onSearchQueryChanged,
+        onProductClick = onProductClick,
+        onCustomizeClick = onCustomizeClick,
+        onCartClick = onCartClick,
+        onTrackOrderClick = onTrackOrderClick,
+        onRetryClick = viewModel::onRetry,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun HomeScreenContent(
+    uiState: HomeUiState,
+    onCategorySelected: (String) -> Unit,
+    onSearchQueryChanged: (String) -> Unit,
+    onProductClick: (Int) -> Unit,
+    onCustomizeClick: (Int) -> Unit,
+    onCartClick: () -> Unit,
+    onTrackOrderClick: () -> Unit,
+    onRetryClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
-        topBar = {
-            BrewkeryTopBar(
-                title = "Brewkery",
-                canNavigateBack = false,
-                cartItemCount = uiState.cartCount,
-                onCartClick = onCartClick
+        containerColor = WarmBackground,
+        bottomBar = {
+            FloatingCartBar(
+                cartCount = uiState.cartCount,
+                subtotal = uiState.cartSubtotal,
+                onCheckoutClick = onCartClick,
+                modifier = Modifier.navigationBarsPadding()
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = WarmBackground
+        modifier = modifier
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .statusBarsPadding()
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxSize()
+            // Top Section (Header, Delivery Card, Search Bar, Categories)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                // Promotional Banner
-                item(span = { GridItemSpan(2) }) {
-                    PromoBanner()
-                }
+                // 1. Top Header with BK logo, store title and cart button
+                BrewkeryHeader(
+                    cartCount = uiState.cartCount,
+                    onCartClick = onCartClick
+                )
 
-                // Search Bar
-                item(span = { GridItemSpan(2) }) {
-                    OutlinedTextField(
-                        value = uiState.searchQuery,
-                        onValueChange = onSearchQueryChanged,
-                        placeholder = {
-                            Text(
-                                text = "Search coffee, roast, bakery...",
-                                color = LightMutedText,
-                                fontSize = 14.sp
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = CaramelAccent
-                            )
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = WarmSurface,
-                            unfocusedContainerColor = WarmSurface,
-                            focusedBorderColor = CoffeePrimary,
-                            unfocusedBorderColor = OutlineWarm
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Category Chips
-                item(span = { GridItemSpan(2) }) {
-                    CategoryFilterRow(
-                        selectedCategory = uiState.selectedCategory,
-                        onCategorySelected = onCategorySelected,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                }
-
-                // Section Header
-                item(span = { GridItemSpan(2) }) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Artisanal Selection",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = DarkRoastText
-                        )
-                        Text(
-                            text = "${uiState.filteredCoffees.size} items",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = LightMutedText
-                        )
-                    }
-                }
-
-                // Loading State
-                if (uiState.isLoading) {
-                    item(span = { GridItemSpan(2) }) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = CoffeePrimary)
+                // 2. Delivery / Active Order Status Card
+                DeliveryInfoCard(
+                    storeMeta = uiState.storeMeta,
+                    activeOrder = uiState.activeOrder,
+                    onCardClick = {
+                        if (uiState.activeOrder != null) {
+                            onTrackOrderClick()
                         }
                     }
-                } else if (uiState.filteredCoffees.isEmpty()) {
-                    item(span = { GridItemSpan(2) }) {
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 3. Search Bar
+                BrewkerySearchBar(
+                    query = uiState.searchQuery,
+                    onQueryChanged = onSearchQueryChanged
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 4. Horizontal Category Filter Chips
+                CategoryChipsRow(
+                    categories = uiState.categories,
+                    selectedCategoryId = uiState.selectedCategoryId,
+                    onCategorySelected = onCategorySelected
+                )
+            }
+
+            // 5. Product Listing (LazyColumn)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                when {
+                    uiState.isLoading && uiState.products.isEmpty() -> {
+                        // Loading State
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
+                            modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "No coffee items found.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MediumRoastText
-                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(
+                                    color = OrangeAccent,
+                                    modifier = Modifier.size(38.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Brewing menu...",
+                                    color = MutedBrownText,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
-                } else {
-                    items(
-                        items = uiState.filteredCoffees,
-                        key = { it.id }
-                    ) { coffee ->
-                        CoffeeCard(
-                            coffee = coffee,
-                            onClick = { onCoffeeClick(coffee.id) },
-                            onAddClick = {
-                                onQuickAdd(coffee)
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Added ${coffee.name} to cart")
+
+                    uiState.errorMessage != null && uiState.products.isEmpty() -> {
+                        // Error State
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(BorderSubtle.copy(alpha = 0.5f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = "⚠️", fontSize = 28.sp)
+                                }
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Text(
+                                    text = "Couldn't load menu",
+                                    color = DarkBrownText,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = uiState.errorMessage,
+                                    color = MutedBrownText,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = onRetryClick,
+                                    colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Try Again", color = Color.White, fontWeight = FontWeight.Bold)
                                 }
                             }
-                        )
+                        }
+                    }
+
+                    uiState.filteredProducts.isEmpty() -> {
+                        // Empty Search / Filter State
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(text = "🔍", fontSize = 32.sp)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "No items found",
+                                    color = DarkBrownText,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Try searching for a different roast, cold brew, or bakery item.",
+                                    color = MutedBrownText,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        // Populated Product Items List
+                        LazyColumn(
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 80.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(
+                                items = uiState.filteredProducts,
+                                key = { it.id }
+                            ) { product ->
+                                ProductListItemCard(
+                                    product = product,
+                                    onClick = { onProductClick(product.id) },
+                                    onCustomizeClick = { onCustomizeClick(product.id) }
+                                )
+                            }
+                        }
                     }
                 }
-
-                item(span = { GridItemSpan(2) }) {
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
             }
         }
     }
 }
-
-@Composable
-private fun PromoBanner() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(EspressoDark, CoffeePrimary, CaramelAccent)
-                )
-            )
-            .padding(18.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(CaramelAccent)
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = "SPECIAL PROMO",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Crafted to Perfection",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Enjoy 20% off on your first artisanal blend order.",
-                    color = LatteCream,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.Coffee,
-                contentDescription = null,
-                tint = LatteCream.copy(alpha = 0.8f),
-                modifier = Modifier.size(54.dp)
-            )
-        }
-    }
-}
-

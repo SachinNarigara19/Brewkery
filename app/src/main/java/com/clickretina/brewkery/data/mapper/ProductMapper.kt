@@ -69,3 +69,4 @@ fun ProductItemDto.toDomain(): ProductItem {
         milkOptions = customizations?.milkOptions?.map { it.toDomain() } ?: emptyList()
     )
 }
+

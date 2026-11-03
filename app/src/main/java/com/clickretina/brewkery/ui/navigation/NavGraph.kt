@@ -15,7 +15,6 @@ import com.clickretina.brewkery.ui.screens.cart.CartViewModel
 import com.clickretina.brewkery.ui.screens.detail.DetailScreen
 import com.clickretina.brewkery.ui.screens.detail.DetailViewModel
 import com.clickretina.brewkery.ui.screens.home.HomeScreen
-import com.clickretina.brewkery.ui.screens.home.HomeViewModel
 
 @Composable
 fun BrewkeryNavGraph(
@@ -29,20 +28,17 @@ fun BrewkeryNavGraph(
         startDestination = startDestination
     ) {
         composable(Screen.Home.route) {
-            val homeViewModel: HomeViewModel = viewModel(
-                factory = HomeViewModel.Factory(repository)
-            )
-            val uiState by homeViewModel.uiState.collectAsState()
-
             HomeScreen(
-                uiState = uiState,
-                onCategorySelected = homeViewModel::onCategorySelected,
-                onSearchQueryChanged = homeViewModel::onSearchQueryChanged,
-                onCoffeeClick = { coffeeId ->
-                    navController.navigate(Screen.Detail.createRoute(coffeeId))
+                onProductClick = { productId ->
+                    navController.navigate(Screen.Detail.createRoute(productId))
                 },
-                onQuickAdd = homeViewModel::quickAddToCart,
+                onCustomizeClick = { productId ->
+                    navController.navigate(Screen.Detail.createRoute(productId))
+                },
                 onCartClick = {
+                    navController.navigate(Screen.Cart.route)
+                },
+                onTrackOrderClick = {
                     navController.navigate(Screen.Cart.route)
                 }
             )
@@ -51,12 +47,12 @@ fun BrewkeryNavGraph(
         composable(
             route = Screen.Detail.route,
             arguments = listOf(
-                navArgument("coffeeId") { type = NavType.StringType }
+                navArgument("productId") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val coffeeId = backStackEntry.arguments?.getString("coffeeId").orEmpty()
+            val productId = backStackEntry.arguments?.getString("productId").orEmpty()
             val detailViewModel: DetailViewModel = viewModel(
-                factory = DetailViewModel.Factory(coffeeId, repository)
+                factory = DetailViewModel.Factory(productId, repository)
             )
             val uiState by detailViewModel.uiState.collectAsState()
 
@@ -73,6 +69,25 @@ fun BrewkeryNavGraph(
         }
 
         composable(Screen.Cart.route) {
+            val cartViewModel: CartViewModel = viewModel(
+                factory = CartViewModel.Factory(repository)
+            )
+            val uiState by cartViewModel.uiState.collectAsState()
+
+            CartScreen(
+                uiState = uiState,
+                onBackClick = { navController.popBackStack() },
+                onQuantityChange = cartViewModel::updateQuantity,
+                onRemoveItem = cartViewModel::removeItem,
+                onCheckout = cartViewModel::checkout,
+                onContinueShopping = {
+                    cartViewModel.resetOrderState()
+                    navController.popBackStack(Screen.Home.route, inclusive = false)
+                }
+            )
+        }
+
+        composable(Screen.OrderStatus.route) {
             val cartViewModel: CartViewModel = viewModel(
                 factory = CartViewModel.Factory(repository)
             )

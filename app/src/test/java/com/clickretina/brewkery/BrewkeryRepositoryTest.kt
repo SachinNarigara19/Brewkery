@@ -192,3 +192,4 @@ class BrewkeryRepositoryTest {
         assertTrue(errorMsg.contains("500"))
     }
 }
+
