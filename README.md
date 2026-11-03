@@ -58,6 +58,11 @@ The application reflects the warm, cream-and-terracotta visual identity of an ar
      - Status note: `Status: Barista accepted your order!`
    - `"Back to Menu"` button in dark brown `#140B07` returning to storefront with live order status active.
 
+5. **Premium Splash Screen & Artisanal App Icon**:
+   - Native **Android SplashScreen API** (`androidx.core:core-splashscreen`) configured in `themes.xml` and `AndroidManifest.xml` with zero cold-start delay.
+   - Jetpack Compose entrance splash with animated circular BK monogram badge, coffee steam waves, and smooth crossfade into storefront.
+   - Bespoke **Adaptive Launcher Icon** featuring a deep espresso backdrop, terracotta accent ring, golden amber steam waves, and bold BK monogram across both adaptive vector XML and high-res mipmaps.
+
 ---
 
 ## 🛠️ Technology Stack
