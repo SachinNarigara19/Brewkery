@@ -2,7 +2,7 @@ package com.clickretina.brewkery.ui.screens.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,27 +13,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -42,21 +39,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.clickretina.brewkery.domain.model.CoffeeSize
-import com.clickretina.brewkery.domain.model.SugarLevel
-import com.clickretina.brewkery.ui.components.BrewkeryTopBar
-import com.clickretina.brewkery.ui.theme.CaramelAccent
-import com.clickretina.brewkery.ui.theme.CoffeePrimary
-import com.clickretina.brewkery.ui.theme.DarkRoastText
-import com.clickretina.brewkery.ui.theme.LatteCream
-import com.clickretina.brewkery.ui.theme.LightMutedText
-import com.clickretina.brewkery.ui.theme.MediumRoastText
-import com.clickretina.brewkery.ui.theme.OutlineWarm
-import com.clickretina.brewkery.ui.theme.RatingGold
-import com.clickretina.brewkery.ui.theme.SurfaceSubtle
+import com.clickretina.brewkery.BrewkeryApplication
+import com.clickretina.brewkery.domain.model.ProductMilkOption
+import com.clickretina.brewkery.domain.model.ProductSizeOption
+import com.clickretina.brewkery.ui.screens.detail.components.CustomizerMilkSelector
+import com.clickretina.brewkery.ui.screens.detail.components.CustomizerQuantitySelector
+import com.clickretina.brewkery.ui.screens.detail.components.CustomizerSizeSelector
+import com.clickretina.brewkery.ui.screens.detail.components.CustomizerSugarSelector
+import com.clickretina.brewkery.ui.screens.detail.components.CustomizerTopBar
+import com.clickretina.brewkery.ui.screens.detail.components.StickyBottomAddToCartBar
+import com.clickretina.brewkery.ui.theme.BadgeBg
+import com.clickretina.brewkery.ui.theme.BadgeText
+import com.clickretina.brewkery.ui.theme.BorderSubtle
+import com.clickretina.brewkery.ui.theme.DarkBrownText
+import com.clickretina.brewkery.ui.theme.IngredientChipBg
+import com.clickretina.brewkery.ui.theme.MutedBrownText
+import com.clickretina.brewkery.ui.theme.OrangeAccent
 import com.clickretina.brewkery.ui.theme.WarmBackground
 import com.clickretina.brewkery.ui.theme.WarmSurface
 import kotlinx.coroutines.launch
@@ -64,354 +68,366 @@ import java.util.Locale
 
 @Composable
 fun DetailScreen(
-    uiState: DetailUiState,
+    productId: Int,
     onBackClick: () -> Unit,
     onCartClick: () -> Unit,
-    onSizeSelected: (CoffeeSize) -> Unit,
-    onSugarSelected: (SugarLevel) -> Unit,
-    onIncreaseQuantity: () -> Unit,
-    onDecreaseQuantity: () -> Unit,
-    onAddToCart: () -> Boolean
+    modifier: Modifier = Modifier,
+    viewModel: DetailViewModel = viewModel(
+        factory = DetailViewModel.Factory(
+            productId = productId,
+            repository = BrewkeryApplication.instance.brewkeryRepository
+        )
+    )
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    Scaffold(
-        topBar = {
-            BrewkeryTopBar(
-                title = "Item Details",
-                canNavigateBack = true,
-                onNavigateBack = onBackClick,
-                cartItemCount = uiState.cartCount,
-                onCartClick = onCartClick
+    LaunchedEffect(uiState.isAddedToCart) {
+        if (uiState.isAddedToCart) {
+            val itemName = uiState.product?.name ?: "Item"
+            val result = snackbarHostState.showSnackbar(
+                message = "$itemName added to cart!",
+                actionLabel = "View Cart",
+                duration = SnackbarDuration.Short
             )
+            viewModel.resetAddedToCart()
+            if (result == SnackbarResult.ActionPerformed) {
+                onCartClick()
+            }
+        }
+    }
+
+    DetailScreenContent(
+        uiState = uiState,
+        onBackClick = onBackClick,
+        onFavoriteToggle = viewModel::toggleFavorite,
+        onSizeSelected = viewModel::onSizeSelected,
+        onMilkSelected = viewModel::onMilkSelected,
+        onSugarSelected = viewModel::onSugarSelected,
+        onIncreaseQuantity = viewModel::increaseQuantity,
+        onDecreaseQuantity = viewModel::decreaseQuantity,
+        onAddToCartClick = {
+            viewModel.addToCart()
         },
+        onRetryClick = viewModel::loadProductDetail,
+        snackbarHostState = snackbarHostState,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun DetailScreenContent(
+    uiState: DetailUiState,
+    onBackClick: () -> Unit,
+    onFavoriteToggle: () -> Unit,
+    onSizeSelected: (ProductSizeOption) -> Unit,
+    onMilkSelected: (ProductMilkOption) -> Unit,
+    onSugarSelected: (String) -> Unit,
+    onIncreaseQuantity: () -> Unit,
+    onDecreaseQuantity: () -> Unit,
+    onAddToCartClick: () -> Unit,
+    onRetryClick: () -> Unit,
+    snackbarHostState: SnackbarHostState,
+    modifier: Modifier = Modifier
+) {
+    Scaffold(
+        containerColor = WarmBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (uiState.coffee != null) {
-                Surface(
-                    color = WarmSurface,
-                    shadowElevation = 10.dp,
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Total Price",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = LightMutedText
-                            )
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = "$",
-                                    color = CaramelAccent,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = String.format(Locale.US, "%.2f", uiState.currentTotalPrice),
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DarkRoastText
-                                )
-                            }
-                        }
-
-                        Button(
-                            onClick = {
-                                if (onAddToCart()) {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Added to cart!")
-                                    }
-                                }
-                            },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CoffeePrimary),
-                            modifier = Modifier
-                                .height(52.dp)
-                                .padding(start = 16.dp)
-                        ) {
-                            Text(
-                                text = "Add to Cart",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
+            if (uiState.product != null) {
+                StickyBottomAddToCartBar(
+                    totalPrice = uiState.totalPrice,
+                    onAddToCartClick = onAddToCartClick
+                )
             }
         },
-        containerColor = WarmBackground
+        modifier = modifier
     ) { innerPadding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = CoffeePrimary)
-            }
-        } else if (uiState.coffee == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = uiState.errorMessage ?: "Coffee item not found.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MediumRoastText
-                )
-            }
-        } else {
-            val coffee = uiState.coffee
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
-            ) {
-                // Header Image
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(240.dp)
-                        .clip(RoundedCornerShape(22.dp))
-                ) {
-                    AsyncImage(
-                        model = coffee.imageUrl,
-                        contentDescription = coffee.name,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.matchParentSize()
-                    )
-                }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .statusBarsPadding()
+        ) {
+            // 1. Top Toolbar (Back Button, Centered "ITEM CUSTOMIZER", Heart Favorite Button)
+            CustomizerTopBar(
+                isFavorite = uiState.isFavorite,
+                onBackClick = onBackClick,
+                onFavoriteToggle = onFavoriteToggle,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+            )
 
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // Title and Rating
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = coffee.name,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = coffee.subtitle,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = LightMutedText
-                        )
-                    }
-
-                    Surface(
-                        color = LatteCream,
-                        shape = RoundedCornerShape(12.dp)
+            // Content Area (Loading, Error, or Populated Customizer)
+            when {
+                uiState.isLoading && uiState.product == null -> {
+                    // Loading State
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = null,
-                                tint = RatingGold,
-                                modifier = Modifier.size(16.dp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(
+                                color = OrangeAccent,
+                                modifier = Modifier.size(38.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = String.format(Locale.US, "%.1f", coffee.rating),
-                                fontWeight = FontWeight.Bold,
-                                color = DarkRoastText,
-                                fontSize = 13.sp
-                            )
-                            Text(
-                                text = " (${coffee.reviewCount})",
-                                color = LightMutedText,
-                                fontSize = 11.sp
+                                text = "Loading item details...",
+                                color = MutedBrownText,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = OutlineWarm.copy(alpha = 0.4f))
-                Spacer(modifier = Modifier.height(12.dp))
+                uiState.errorMessage != null && uiState.product == null -> {
+                    // Error State
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f)
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(BorderSubtle.copy(alpha = 0.5f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = "⚠️", fontSize = 28.sp)
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "Couldn't load item details",
+                                color = DarkBrownText,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = uiState.errorMessage,
+                                color = MutedBrownText,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = onRetryClick,
+                                colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Try Again", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
 
-                // Description
-                Text(
-                    text = "Description",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = coffee.description,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MediumRoastText
-                )
+                uiState.product != null -> {
+                    val product = uiState.product
+                    val isBakery = product.categoryId == "cat_bakery"
 
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // Size Selector
-                Text(
-                    text = "Select Size",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    CoffeeSize.entries.forEach { size ->
-                        val isSelected = size == uiState.selectedSize
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        // 2. Large Product Image with Rounded Corners & Badge Overlay
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) CoffeePrimary else WarmSurface)
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isSelected) CoffeePrimary else OutlineWarm,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .clickable { onSizeSelected(size) }
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .height(230.dp)
+                                .clip(RoundedCornerShape(22.dp))
+                                .background(WarmSurface)
+                                .border(1.dp, BorderSubtle, RoundedCornerShape(22.dp))
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = size.label,
-                                    color = if (isSelected) Color.White else DarkRoastText,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp
-                                )
-                                if (size.extraPrice > 0) {
+                            AsyncImage(
+                                model = product.imageUrl,
+                                contentDescription = product.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.matchParentSize()
+                            )
+
+                            // Badge Overlay (e.g. BESTSELLER, STAFF PICK, FRESHLY BAKED)
+                            if (!product.badge.isNullOrBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(12.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(BadgeBg)
+                                        .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                                ) {
                                     Text(
-                                        text = "+$${String.format(Locale.US, "%.2f", size.extraPrice)}",
-                                        color = if (isSelected) LatteCream else LightMutedText,
-                                        fontSize = 11.sp
+                                        text = product.badge.uppercase(),
+                                        color = BadgeText,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.5.sp
                                     )
                                 }
                             }
                         }
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                // Sugar Level Selector
-                Text(
-                    text = "Sweetness",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    SugarLevel.entries.forEach { sugar ->
-                        val isSelected = sugar == uiState.selectedSugar
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) CaramelAccent else WarmSurface)
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isSelected) CaramelAccent else OutlineWarm,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .clickable { onSugarSelected(sugar) }
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
+                        // 3. Product Information (Title, Orange Price, Description, Ingredients)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
                         ) {
                             Text(
-                                text = sugar.label.substringBefore(" "),
-                                color = if (isSelected) Color.White else DarkRoastText,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 11.sp
+                                text = product.name,
+                                color = DarkBrownText,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.weight(1f)
                             )
-                        }
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
 
-                // Quantity selector
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Quantity",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(SurfaceSubtle)
-                                .clickable(onClick = onDecreaseQuantity),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Remove,
-                                contentDescription = "Decrease",
-                                tint = DarkRoastText,
-                                modifier = Modifier.size(16.dp)
+                            Text(
+                                text = "$${String.format(Locale.US, "%.2f", product.basePrice)}",
+                                color = OrangeAccent,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black
                             )
                         }
 
-                        Text(
-                            text = uiState.quantity.toString(),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                        // Rating & Reviews row
+                        if (product.rating > 0.0) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "⭐ ${String.format(Locale.US, "%.1f", product.rating)}",
+                                    color = DarkBrownText,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (product.reviewCount > 0) {
+                                    Text(
+                                        text = " (${product.reviewCount} reviews)",
+                                        color = MutedBrownText,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                if (product.prepTime.isNotBlank()) {
+                                    Text(
+                                        text = " • ⏱ ${product.prepTime}",
+                                        color = MutedBrownText,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Product Description
+                        if (product.description.isNotBlank()) {
+                            Text(
+                                text = product.description,
+                                color = MutedBrownText,
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // Key Ingredient Chips
+                        if (product.ingredients.isNotEmpty()) {
+                            Text(
+                                text = "Key Ingredients",
+                                color = DarkBrownText,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                product.ingredients.forEach { ingredient ->
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(IngredientChipBg)
+                                            .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = ingredient,
+                                            color = DarkBrownText,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = BorderSubtle.copy(alpha = 0.5f))
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 4. Size Selection
+                        CustomizerSizeSelector(
+                            sizes = product.sizes,
+                            selectedSize = uiState.selectedSize,
+                            onSizeSelected = onSizeSelected,
+                            title = if (isBakery) "Select Serving / Pack" else "Size Selection"
                         )
 
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(CoffeePrimary)
-                                .clickable(onClick = onIncreaseQuantity),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Increase",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
+                        // 5. Milk Options / Spreads
+                        if (product.milkOptions.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(18.dp))
+                            CustomizerMilkSelector(
+                                milkOptions = product.milkOptions,
+                                selectedMilk = uiState.selectedMilk,
+                                onMilkSelected = onMilkSelected,
+                                title = if (isBakery) "Artisan Spreads & Add-ons" else "Milk Options / Spreads"
                             )
                         }
+
+                        // 6. Sugar Levels / Serving
+                        if (product.sugarLevels.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(18.dp))
+                            CustomizerSugarSelector(
+                                sugarLevels = product.sugarLevels,
+                                selectedSugar = uiState.selectedSugar,
+                                onSugarSelected = onSugarSelected,
+                                title = if (isBakery) "Serving Temperature" else "Sugar Levels / Serving"
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        // 7. Quantity Selector
+                        CustomizerQuantitySelector(
+                            quantity = uiState.quantity,
+                            onIncrease = onIncreaseQuantity,
+                            onDecrease = onDecreaseQuantity
+                        )
+
+                        // Bottom Spacer to prevent content being covered by sticky bottom bar
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
-
-                Spacer(modifier = Modifier.height(100.dp))
             }
         }
     }
 }
-

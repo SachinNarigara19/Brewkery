@@ -13,7 +13,6 @@ import com.clickretina.brewkery.BrewkeryApplication
 import com.clickretina.brewkery.ui.screens.cart.CartScreen
 import com.clickretina.brewkery.ui.screens.cart.CartViewModel
 import com.clickretina.brewkery.ui.screens.detail.DetailScreen
-import com.clickretina.brewkery.ui.screens.detail.DetailViewModel
 import com.clickretina.brewkery.ui.screens.home.HomeScreen
 
 @Composable
@@ -50,21 +49,13 @@ fun BrewkeryNavGraph(
                 navArgument("productId") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val productId = backStackEntry.arguments?.getString("productId").orEmpty()
-            val detailViewModel: DetailViewModel = viewModel(
-                factory = DetailViewModel.Factory(productId, repository)
-            )
-            val uiState by detailViewModel.uiState.collectAsState()
+            val productIdStr = backStackEntry.arguments?.getString("productId").orEmpty()
+            val productId = productIdStr.toIntOrNull() ?: 1
 
             DetailScreen(
-                uiState = uiState,
+                productId = productId,
                 onBackClick = { navController.popBackStack() },
-                onCartClick = { navController.navigate(Screen.Cart.route) },
-                onSizeSelected = detailViewModel::onSizeSelected,
-                onSugarSelected = detailViewModel::onSugarSelected,
-                onIncreaseQuantity = detailViewModel::increaseQuantity,
-                onDecreaseQuantity = detailViewModel::decreaseQuantity,
-                onAddToCart = detailViewModel::addToCart
+                onCartClick = { navController.navigate(Screen.Cart.route) }
             )
         }
 
