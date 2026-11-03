@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="coffee_primary">#6F4E37</color>
+    <color name="coffee_primary_dark">#4B3621</color>
+    <color name="coffee_secondary">#C49A6C</color>
+    <color name="coffee_accent">#D4A373</color>
+    <color name="coffee_background">#FAF7F2</color>
+    <color name="coffee_surface">#FFFFFF</color>
+    <color name="coffee_text">#2B1E16</color>
+    <color name="coffee_text_secondary">#7A6A5D</color>
+</resources>
