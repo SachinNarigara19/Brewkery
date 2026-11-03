@@ -51,9 +51,11 @@ data class ProductMilkOption(
 
 data class ActiveOrder(
     val orderId: String,
-    val estimatedWait: String = "20 - 30 minutes",
+    val estimatedWait: String = "20–30 minutes",
     val itemCount: Int,
     val totalAmount: Double,
+    val statusText: String = "Barista accepted your order!",
+    val itemsSummary: List<String> = emptyList(),
     val timestamp: Long = System.currentTimeMillis()
 )
 

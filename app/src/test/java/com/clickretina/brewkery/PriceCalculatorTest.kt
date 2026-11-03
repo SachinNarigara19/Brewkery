@@ -95,3 +95,4 @@ class PriceCalculatorTest {
         assertEquals(2, bill.itemCount)
     }
 }
+

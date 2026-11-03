@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.clickretina.brewkery.ui.screens.cart.CartScreen
 import com.clickretina.brewkery.ui.screens.detail.DetailScreen
 import com.clickretina.brewkery.ui.screens.home.HomeScreen
+import com.clickretina.brewkery.ui.screens.order.OrderStatusScreen
 
 @Composable
 fun BrewkeryNavGraph(
@@ -65,12 +66,8 @@ fun BrewkeryNavGraph(
         }
 
         composable(Screen.OrderStatus.route) {
-            CartScreen(
-                onBackClick = {
-                    navController.popBackStack(Screen.Home.route, inclusive = false)
-                },
-                onNavigateToOrderStatus = {},
-                onExploreMenuClick = {
+            OrderStatusScreen(
+                onBackToMenuClick = {
                     navController.popBackStack(Screen.Home.route, inclusive = false)
                 }
             )

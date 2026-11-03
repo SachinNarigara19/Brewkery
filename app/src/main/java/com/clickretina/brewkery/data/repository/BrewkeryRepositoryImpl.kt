@@ -184,12 +184,21 @@ class BrewkeryRepositoryImpl(
         val tax = subtotal * (_storeMeta.value.taxRatePercent / 100.0)
         val grandTotal = subtotal + deliveryFee + tax
 
+        val summary = currentCart.map {
+            "${it.quantity}x ${it.product?.name ?: it.coffeeItem?.name ?: "Item"}"
+        }
         val orderCode = "#BK-${Random.nextInt(10000, 99999)}"
         val newOrder = ActiveOrder(
             orderId = orderCode,
-            estimatedWait = _storeMeta.value.estimatedDeliveryTime,
+            estimatedWait = if (_storeMeta.value.estimatedDeliveryTime.isNotBlank()) {
+                _storeMeta.value.estimatedDeliveryTime
+            } else {
+                "20–30 minutes"
+            },
             itemCount = totalQty,
-            totalAmount = grandTotal
+            totalAmount = grandTotal,
+            statusText = "Barista accepted your order!",
+            itemsSummary = summary
         )
 
         _activeOrder.value = newOrder
