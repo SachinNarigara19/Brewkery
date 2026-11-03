@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Base Application Theme -->
     <style name="Theme.Brewkery" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">@color/coffee_background</item>
+        <item name="android:statusBarColor">@color/splash_background</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/splash_background</item>
+    </style>
+
+    <!-- Native SplashScreen API Theme -->
+    <style name="Theme.Brewkery.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_bk_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Brewkery</item>
     </style>
 </resources>
-

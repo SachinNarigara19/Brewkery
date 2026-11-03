@@ -8,5 +8,8 @@
     <color name="coffee_surface">#FFFFFF</color>
     <color name="coffee_text">#2B1E16</color>
     <color name="coffee_text_secondary">#7A6A5D</color>
+    <color name="splash_background">#FFF9F5</color>
+    <color name="splash_accent">#E84B2C</color>
+    <color name="splash_espresso">#180D08</color>
 </resources>
 

@@ -1,0 +1,34 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+
+    <!-- Outer Orange Accent Ring -->
+    <path
+        android:strokeColor="#E84B2C"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:pathData="M80,80m-68,0a68,68 0,1,1 136,0a68,68 0,1,1 -136,0" />
+
+    <!-- Dark Espresso Circular Badge -->
+    <path
+        android:fillColor="#180D08"
+        android:pathData="M80,80m-60,0a60,60 0,1,1 120,0a60,60 0,1,1 -120,0" />
+
+    <!-- 'B' Letter Monogram in Pure White -->
+    <!-- Stem of B -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52,50 L66,50 C73,50 78,54 78,61 C78,66 74,70 69,71 C75,72 80,77 80,84 C80,92 74,96 66,96 L52,96 Z M61,59 L61,68 L66,68 C68.5,68 70,66.5 70,63.5 C70,60.5 68.5,59 66,59 Z M61,77 L61,87 L67,87 C69.5,87 71,85 71,82 C71,79 69.5,77 67,77 Z" />
+
+    <!-- 'K' Letter Monogram with Orange Accent on Diagonal -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M86,50 L95,50 L95,96 L86,96 Z" />
+    <path
+        android:fillColor="#E84B2C"
+        android:pathData="M95,73 L108,50 L118,50 L102,77 L119,96 L108,96 L95,81 Z" />
+
+</vector>
+
